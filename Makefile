@@ -1,4 +1,7 @@
-build:
+build: 
+	catkin build --summarize ros1_toolbox
+
+quick-build:
 	catkin build --no-status --no-notify --no-color --summarize ros1_toolbox
 
 format:
