@@ -3,8 +3,8 @@
 #include <optional>
 
 #include <CLI/CLI.hpp>
-#include <spdlog/spdlog.h>
-
+#include <fmt/core.h>
+#include <ros/ros.h>
 // This file will be generated automatically when you run the CMake configuration step.
 // It creates a namespace called `myproject`.
 // You can modify the source template at `configured_files/config.hpp.in`.
@@ -30,14 +30,12 @@ int main(int argc, const char **argv)
     }
 
     // Use the default logger (stdout, multi-threaded, colored)
-    spdlog::info("Hello, {}!", "World");
-
     if (message) {
       fmt::print("Message: '{}'\n", *message);
     } else {
       fmt::print("No Message Provided :(\n");
     }
   } catch (const std::exception &e) {
-    spdlog::error("Unhandled exception in main: {}", e.what());
+    ROS_ERROR("{}", e.what());
   }
 }

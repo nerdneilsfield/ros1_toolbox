@@ -9,12 +9,10 @@ target_link_system_libraries(
   intro
   PRIVATE
   fmt::fmt
-  spdlog::spdlog
   CLI11::CLI11
+  ${catkin_LIBRARIES}
 )
 
 
 target_include_directories(intro PRIVATE "${CMAKE_BINARY_DIR}/configured_files/include")
 
-
-add_library(adder adder.cpp)
