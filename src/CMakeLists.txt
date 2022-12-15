@@ -33,3 +33,21 @@ target_include_directories(point_cloud_extractor
   "${CMAKE_BINARY_DIR}/configured_files/include" 
   ${PCL_INCLUDE_DIRS}
 )
+
+
+add_executable(navfix_to_csv navfix_to_csv.cpp)
+target_link_libraries(navfix_to_csv PRIVATE
+  project_options
+  project_warnings
+  ${catkin_LIBRARIES}
+)
+target_link_system_libraries(
+  navfix_to_csv
+  PRIVATE
+  fmt::fmt
+  CLI11::CLI11
+)
+target_include_directories(navfix_to_csv 
+  PRIVATE
+  "${CMAKE_BINARY_DIR}/configured_files/include" 
+)

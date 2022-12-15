@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
   // check if bag file exists
   if (!std::filesystem::exists(*bag_file)) {
-    ROS_ERROR("bag file %s does not exist", *bag_file);
+    ROS_ERROR("bag file %s does not exist", bag_file->c_str());
     return EXIT_FAILURE;
   }
 
