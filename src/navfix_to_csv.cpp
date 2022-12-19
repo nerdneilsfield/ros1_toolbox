@@ -133,6 +133,8 @@ int main(int argc, char **argv)
 
 
   PointCloudPtr cloud(new PointCloudT);
+  cloud->width = xs.size();
+  cloud->height = 1;
   cloud->points.resize(xs.size());
   for (size_t i = 0; i < xs.size(); i++) {
     cloud->points[i].x = xs[i];
