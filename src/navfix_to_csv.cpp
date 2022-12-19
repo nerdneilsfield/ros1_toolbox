@@ -9,11 +9,19 @@
 #include <CLI/CLI.hpp>
 #include <fmt/core.h>
 
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/NavSatStatus.h>
+
+using PointT = pcl::PointXYZ;
+using PointCloudT = pcl::PointCloud<PointT>;
+using PointCloudPtr = PointCloudT::Ptr;
+using PointCloudConstPtr = PointCloudT::ConstPtr;
 
 #include <internal_use_only/config.hpp>
 
@@ -41,7 +49,8 @@ int main(int argc, char **argv)
   app.add_option("-t,--topic", topic, "topic to extract navfix information from");
   std::optional<std::string> output_filename;
   app.add_option("-o,--output_filename", output_filename, "output csv filename to save navfix information to");
-
+  std::optional<std::string> pcd_filename;
+  app.add_option("-p,--pcd_filename", pcd_filename, "output poses as pointcloud save to");
 
   CLI11_PARSE(app, argc, argv);
 
@@ -50,8 +59,8 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
 
-  if (!bag_file || !topic || !output_filename) {
-    ROS_ERROR("bag_file, topic and output_filename are required");
+  if (!bag_file || !topic || !output_filename || !pcd_filename) {
+    ROS_ERROR("bag_file, topic, output_filename, pcd_filename are required");
     return EXIT_FAILURE;
   }
 
@@ -69,6 +78,17 @@ int main(int argc, char **argv)
     }
   }
 
+  fs::path pcd_file_path(pcd_filename->c_str());
+  fs::path pcd_base_dir = pcd_file_path.parent_path();
+  if (pcd_base_dir.string() != "") {
+    if (!fs::exists(pcd_base_dir)) {
+      ROS_WARN("pcd outfile base directory does not exist: %s", pcd_base_dir.string().c_str());
+      fs::create_directories(pcd_base_dir);
+      ROS_INFO("pcd outfile base directory created: %s", pcd_base_dir.string().c_str());
+    }
+  }
+
+
   rosbag::Bag bag;
   bag.open(*bag_file, rosbag::bagmode::Read);
   ROS_INFO("bag_file: %s opened", bag_file->c_str());
@@ -81,11 +101,14 @@ int main(int argc, char **argv)
   std::filebuf fb;
   fb.open(csv_file_path, std::ios::out);
   std::ostream os(&fb);
-
   os << std::setprecision(9);
 
   os << "ID,TimeStamp,FrameId,Status,Service,Latitude,Longitude,Altitude,PositionCovarianceType,";
   os << "PC[0],PC[1],PC[2],PC[3],PC[4],PC[5],PC[6],PC[7],PC[8]\n";
+
+  std::vector<float> xs;
+  std::vector<float> ys;
+  std::vector<float> zs;
 
   uint64_t count = 0;
   for (const rosbag::MessageInstance m : view) {
@@ -96,6 +119,9 @@ int main(int argc, char **argv)
       os << s->header.frame_id << ",";
       os << static_cast<int32_t>(s->status.status) << "," << s->status.service << ",";
       os << s->latitude << "," << s->longitude << "," << s->altitude << ",";
+      xs.push_back(s->latitude);
+      ys.push_back(s->longitude);
+      zs.push_back(0.0);
       os << static_cast<int32_t>(s->position_covariance_type) << ",";
       os << s->position_covariance[0] << "," << s->position_covariance[1] << "," << s->position_covariance[2] << ",";
       os << s->position_covariance[3] << "," << s->position_covariance[4] << "," << s->position_covariance[5] << ",";
@@ -104,6 +130,18 @@ int main(int argc, char **argv)
       count++;
     }
   }
+
+
+  PointCloudPtr cloud(new PointCloudT);
+  cloud->points.resize(xs.size());
+  for (size_t i = 0; i < xs.size(); i++) {
+    cloud->points[i].x = xs[i];
+    cloud->points[i].y = ys[i];
+    cloud->points[i].z = zs[i];
+  }
+
+  // save point cloud to pcd file
+  pcl::io::savePCDFile(pcd_filename->c_str(), *cloud);
 
   //   os.close();
   fb.close();
